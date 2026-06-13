@@ -1,122 +1,122 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+
+const API_URL = "http://localhost:5063/api/todos";
+// Backend API URL
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [title, setTitle] = useState("");
+  const [todos, setTodos] = useState([]);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  useEffect(() => {
+    loadTodos();
+  }, []);
 
-      <div className="ticks"></div>
+  async function loadTodos() {
+    const response = await fetch(API_URL);
+    const data = await response.json();
+    setTodos(data);
+  }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  async function handleAddTodo(event) {
+    event.preventDefault();
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    if (title.trim() === "") {
+      return;
+    }
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: title,
+        isCompleted: false,
+      }),
+    });
+
+    const createdTodo = await response.json();
+
+    setTodos([...todos, createdTodo]);
+    setTitle("");
+  }
+
+  async function handleToggleTodo(todo) {
+  await fetch(`${API_URL}/${todo.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: todo.id,
+      title: todo.title,
+      isCompleted: !todo.isCompleted,
+    }),
+  });
+
+  setTodos(
+    todos.map((item) =>
+      item.id === todo.id
+        ? { ...item, isCompleted: !item.isCompleted }
+        : item
+    )
+  );
 }
 
-export default App
+async function handleDeleteTodo(id) {
+  await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+  });
+
+  setTodos(todos.filter((todo) => todo.id !== id));
+}
+
+  return (
+    <main className="app">
+      <section className="todo-panel">
+        <h1>Todo List</h1>
+
+        <form className="todo-form" onSubmit={handleAddTodo}>
+          <input
+            type="text"
+            placeholder="Enter a task"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+          <button type="submit">Add</button>
+        </form>
+
+        {todos.length === 0 ? (
+          <p className="empty-message">No tasks yet.</p>
+        ) : (
+          <ul className="todo-list">
+            {todos.map((todo) => (
+              <li key={todo.id} className="todo-item">
+                <label className="todo-check">
+                  <input
+                    type="checkbox"
+                    checked={todo.isCompleted}
+                    onChange={() => handleToggleTodo(todo)}
+                  />
+                  <span className={todo.isCompleted ? "completed" : ""}>
+                    {todo.title}
+                  </span>
+                </label>
+
+                <div className="todo-actions">
+                  <span>{todo.isCompleted ? "Done" : "Pending"}</span>
+                  <button type="button" onClick={() => handleDeleteTodo(todo.id)}>
+                    Delete
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}
+
+export default App;
